@@ -13,6 +13,20 @@ const J=4.8,G=.3,RUN=1.7;
 // Recortes do tileset.png usados como decoração: [x, y, largura, altura]
 const DEC={tree:[196,63,57,64],mush:[255,63,50,64],rocks:[32,106,113,21],bush:[146,105,44,22],flowers:[16,121,7,6]};
 
+// Menu principal: opções e posição dos botões (em pixels)
+const MENU={items:['Novo Jogo','Placar','Controles','Configurações'],x:12,y:80,gap:27,w:132,h:22};
+
+// Texto da tela de controles
+const CONTROLS=[
+  'A / D  andar',
+  'Espaço ou C  pular (segure para pular mais alto)',
+  'Espaço ou C no ar  dash (W / S mudam a direção)',
+  'Encostar na parede: agarra  (W / S sobe e desce)',
+  'Na parede: Espaço ou C  pula pro outro lado',
+  'X ou K  magia (W / S mudam a mira)',
+  'P  pausar  ·  M  som  ·  R  reiniciar'
+];
+
 const LEVEL={
   spawn:[1.8,11],                       // [x do centro, y do chão]
 
