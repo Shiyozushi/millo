@@ -5,8 +5,8 @@
 
 // Resolução interna (pixel art) e tamanho do tile
 const W=400,H=240,T=16;
-// Tamanho da fase em tiles (LW x LH) e deslocamento vertical (DY)
-const LW=25,LH=15,DY=0;
+// Tamanho do mapa em tiles (LW x LH): sala 1 embaixo (15 linhas) + sala 2 em cima (30 linhas)
+const LW=25,LH=45;
 // Física do personagem: força do pulo, gravidade, velocidade de corrida
 const J=4.8,G=.3,RUN=1.7;
 
@@ -14,7 +14,7 @@ const J=4.8,G=.3,RUN=1.7;
 const DEC={tree:[196,63,57,64],mush:[255,63,50,64],rocks:[32,106,113,21],bush:[146,105,44,22],flowers:[16,121,7,6]};
 
 // Menu principal: opções e posição dos botões (em pixels)
-const MENU={items:['Novo Jogo','Placar','Controles','Configurações'],x:12,y:80,gap:27,w:132,h:22};
+const MENU={items:['Novo Jogo','Controles','Configurações'],x:12,y:96,gap:30,w:132,h:22};
 
 // Texto da tela de controles
 const CONTROLS=[
@@ -27,7 +27,9 @@ const CONTROLS=[
   'P  pausar  ·  M  som  ·  R  reiniciar'
 ];
 
+// ---- Sala 1 (embaixo). Coordenadas em tiles, relativas à sala; 'dy' é a linha onde a sala começa no mapa ----
 const LEVEL={
+  dy:30, coinId:'c',
   spawn:[1.8,11],                       // [x do centro, y do chão]
 
   // Blocos de terreno sólido: [x, y, largura, altura]
@@ -54,7 +56,7 @@ const LEVEL={
   holes:[[4,1],[12,7]],                            // miolo das molduras, preenchido com terreno
 
   decos:[["flowers",1.6,11],["bush",7,10],["bush",20,4],["flowers",13,6],["flowers",9.6,12]],  // [nome, x, y do chão]
-  coins:[[4.3,9.4],[9,8.4],[12,4.4],[15.4,3.1],[19,2.8]],   // moedas: a saída só abre com todas
+  coins:[[4.4,8.2],[9,8.4],[12,4.4],[15.4,3.1],[19,2.8]],   // moedas: a saída só abre com todas
   checkpoints:[[12,5]],
   orbs:[],                                         // esferas de pulo extra (nenhuma por enquanto)
   enemies:[],                                      // corvos: [id, x, y do chão] (desativados)
@@ -85,3 +87,36 @@ const LEVEL={
     ]
   }
 };
+
+// ---- Sala 2 (em cima): continuação da subida, mais difícil ----
+// spikes: [x, y, quantidade, direção]  direção: U (cima), D (baixo)
+// wallSpikes: [x, y, quantidade, direção]  direção: L (apontam p/ esquerda), R (apontam p/ direita)
+// movers: [x1, y1, x2, y2, velocidade]  plataformas móveis
+const LEVEL2={
+  dy:0, coinId:'d',
+  fills:[
+    [0,0,11,5],                        // teto, com espinhos pendurados
+    [0,8,5,22],                        // paredão da esquerda
+    [5,19,3,11],                       // ponta esquerda do fosso
+    [15,19,6,11],                      // plataforma ao sair do poço
+    [10,8,5,1],                        // plataforma depois do dash
+    [16,6,3,1],[20,4,3,1],             // degraus finais
+    [23,1,2,4]                         // paredão final
+  ],
+  spikes:[[6,5,4,'D'],[8,29,7,'U'],[12,7,1,'U']],
+  wallSpikes:[[21,25,2,'R'],[24,22,2,'L']],
+  frames:[], holes:[],
+  decos:[["flowers",6.5,19],["bush",17.5,19],["flowers",2,8],["bush",12,8],["bush",17.5,6],["flowers",21,4]],
+  coins:[[22,24],[11,16.5],[7.5,6.8],[13,5],[21,2.3]],
+  checkpoints:[[17,18],[12,7]],
+  orbs:[],
+  movers:[[9,19,12,19,.016]],
+  enemies:[],
+  gate:{x:21,w:4},                     // barreira no topo: só abre com as 5 moedas desta sala
+  backdrop:{
+    zones:[[0,12,24,29]],
+    props:[["vine",0,80],["vine",40,80],["tree",128,400],["tree",174,402],["mush",206,404]]
+  }
+};
+
+const LEVELS=[LEVEL,LEVEL2];
