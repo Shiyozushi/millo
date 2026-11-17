@@ -108,7 +108,7 @@ const LEVEL2={
   frames:[], holes:[],
   decos:[["flowers",6.5,19],["bush",17.5,19],["flowers",2,8],["bush",12,8],["bush",17.5,6],["flowers",21,4]],
   coins:[[22,24],[11,16.5],[7.5,6.8],[13,5],[21,2.3]],
-  checkpoints:[[17,18],[12,7]],
+  checkpoints:[[17,18],[10.5,7]],   // o 2º fica na ponta esquerda da plataforma, longe do espinho da coluna 12
   orbs:[],
   movers:[[9,19,12,19,.016]],
   enemies:[],
