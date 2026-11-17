@@ -43,7 +43,7 @@ const kL=()=>keys.KeyA||keys.ArrowLeft,kR=()=>keys.KeyD||keys.ArrowRight,kU=()=>
 // ---------- fase (montada a partir de LEVEL e LEVEL2, em data.js) ----------
 const grid=Array.from({length:LH},()=>new Uint8Array(LW));
 const fill=(x,y,w,h,v=1)=>{for(let j=y;j<y+h;j++)for(let i=x;i<x+w;i++)grid[j][i]=v};
-const statics=[],movers=[],spikes=[],decos=[],cps=[],items=[],orbs=[],frames=[],GATES=[];
+const statics=[],movers=[],spikes=[],decos=[],cps=[],items=[],orbs=[],frames=[],GATES=[],crumbles=[];
 for(const L of LEVELS){const dy=L.dy;
  L.fills.forEach(([x,y,w,h])=>fill(x,y+dy,w,h));
  (L.spikes||[]).forEach(([x,y,n,d])=>{for(let i=0;i<n;i++)spikes.push({x:(x+i)*T,y:(y+dy)*T,d:d||'U'})});
@@ -51,7 +51,8 @@ for(const L of LEVELS){const dy=L.dy;
  (L.frames||[]).forEach(([x,y,g])=>{frames.push({x:x*T,y:(y+dy)*T,g});fill(x,y+dy,3,3,2);grid[y+dy+1][x+1]=0});
  (L.holes||[]).forEach(([x,y])=>{grid[y+dy][x]=1});
  (L.decos||[]).forEach(d=>decos.push({n:d[0],x:d[1]*T,y:(d[2]+dy)*T}));
- L.coins.forEach((c,i)=>items.push({k:'Coin',x:c[0]*T,y:(c[1]+dy)*T,id:L.coinId+i}));
+ L.coins.forEach((c,i)=>items.push({k:'Coin',x:c[0]*T,y:(c[1]+dy)*T,id:L.coinId+i,w:!!c[2]}));
+ (L.crumbles||[]).forEach(([x,y])=>crumbles.push({x:x*T,y:(y+dy)*T,w:48,h:16,s:0,t:0}));
  (L.checkpoints||[]).forEach(c=>cps.push({x:c[0]*T,y:(c[1]+dy)*T}));
  (L.orbs||[]).forEach(o=>orbs.push({x:o[0]*T,y:(o[1]+dy)*T,cd:0}));
  (L.movers||[]).forEach(([ax,ay,bx,by,s])=>movers.push({x:ax*T,y:(ay+dy)*T,w:48,h:16,ax:ax*T,ay:(ay+dy)*T,bx:bx*T,by:(by+dy)*T,s,t:0}));
@@ -76,7 +77,7 @@ function overl(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 function hit(x,y,nm){const x0=Math.floor(x/T),x1=Math.floor((x+p.w-1)/T),y0=Math.floor(y/T),y1=Math.floor((y+p.h-1)/T);
  if(x0<0||x1>=LW)return true;
  for(let j=Math.max(y0,0);j<=y1&&j<LH;j++)for(let i=x0;i<=x1;i++)if(grid[j][i])return true;
- const r={x,y,w:p.w,h:p.h};for(const g of GATES)if(g.on&&overl(r,g))return true;for(const s of statics)if(overl(r,s))return true;if(!nm)for(const s of movers)if(overl(r,s))return true;return false}
+ const r={x,y,w:p.w,h:p.h};for(const g of GATES)if(g.on&&overl(r,g))return true;for(const s of statics)if(overl(r,s))return true;for(const c of crumbles)if(c.s<2&&overl(r,c))return true;if(!nm)for(const s of movers)if(overl(r,s))return true;return false}
 function mx(v){p.rx+=v;let m=Math.round(p.rx);p.rx-=m;const s=Math.sign(m);while(m){if(!hit(p.x+s,p.y)){p.x+=s;m-=s}else{p.vx=0;p.rx=0;break}}}
 function my(v){p.ry+=v;let m=Math.round(p.ry);p.ry-=m;const s=Math.sign(m);while(m){if(!hit(p.x,p.y+s)){p.y+=s;m-=s}else{
  if(s<0){let ok=0;for(let n=1;n<=4&&!ok;n++)for(const d of[-n,n])if(!hit(p.x+d,p.y+s)){p.x+=d;ok=1;break}if(ok)continue;jumping=false}
@@ -142,7 +143,9 @@ function buildBackdrop(){
  
  
  bkC=c}
-function respawn(){p.x=spawn.x-p.w/2;p.y=spawn.y-p.h;p.vx=p.vy=p.rx=p.ry=0;dead=false;dashT=0;grab=false;gt=0;wcd=0;airJ=0;dashes=1;lock=0;hp=3;inv=0;stun=0;atkT=0;atkCd=0;orbs.forEach(o=>o.cd=0);bolts.length=0;torn.length=0;ekill=new Set(eSnap);spawnEnemies();got=new Set(snap);trail.length=0}
+function respawn(){crumbles.forEach(c=>{c.s=0;c.t=0});p.x=spawn.x-p.w/2;p.y=spawn.y-p.h;
+ for(const dx of[0,8,-8,16,-16,24,-24,32,-32]){p.x=spawn.x-p.w/2+dx;if(!hit(p.x,p.y)&&!spikes.some(s=>overl(p,spikeBox(s))))break}
+p.vx=p.vy=p.rx=p.ry=0;dead=false;dashT=0;grab=false;gt=0;wcd=0;airJ=0;dashes=1;lock=0;hp=3;inv=0;stun=0;atkT=0;atkCd=0;orbs.forEach(o=>o.cd=0);bolts.length=0;torn.length=0;ekill=new Set(eSnap);spawnEnemies();got=new Set(snap);trail.length=0}
 function die(){if(dead)return;dead=true;dT=0;deaths++;cpFx=null;sfx('morte',.8);shake=7;burst(p.x+p.w/2,p.y+p.h/2,30,'#e9708f',2.4,30);burst(p.x+p.w/2,p.y+p.h/2,14,'#8fd8cf',1.6,24)}
 // ---------- simulação ----------
 function step(){
@@ -199,10 +202,14 @@ function step(){
  }
  p.runT+=(ground&&p.dirx&&Math.abs(p.vx)<RUN*.5?RUN:Math.abs(p.vx))*.15;
  mx(p.vx);my(p.vy);combat(dirx,diry);
+ for(const c of crumbles){
+  if(c.s===0){if(!dead&&(ground||grab)&&overl({x:p.x-1,y:p.y-1,w:p.w+2,h:p.h+2},c)){c.s=1;c.t=0;burst(c.x+24,c.y+4,6,'#c98a4a',1.2,16);tone(190,130,.1,'square',.08)}}
+  else if(c.s===1){if(++c.t>=28){c.s=2;c.t=0;for(let q=0;q<3;q++)burst(c.x+8+q*16,c.y+8,9,q%2?'#c98a4a':'#8b5028',1.7,26);tone(150,60,.25,'sawtooth',.12)}}
+  else if(++c.t>=300&&!overl(p,c))c.s=0}
  for(const o of orbs){if(o.cd>0){o.cd--;continue}if(Math.abs(p.x+p.w/2-o.x)<10&&Math.abs(p.y+p.h/2-o.y)<12){airJ=1;o.cd=170;burst(o.x,o.y,14,'#e3f5f1',1.8,20);tone(660,1320,.12,'sine',.18)}}
  // perigos e coletáveis
  const hb={x:p.x,y:p.y,w:p.w,h:p.h};
- for(const s of spikes)if(overl(hb,s.d==='L'?{x:s.x+6,y:s.y+3,w:10,h:10}:s.d==='R'?{x:s.x,y:s.y+3,w:10,h:10}:s.d==='D'?{x:s.x+3,y:s.y,w:10,h:8}:{x:s.x+3,y:s.y+8,w:10,h:8}))return die();
+ for(const s of spikes)if(overl(hb,spikeBox(s)))return die();
  if(p.y>LH*T+16)return die();
  for(const it of items)if(!got.has(it.id)&&overl(hb,{x:it.x,y:it.y,w:16,h:16})){got.add(it.id);sfx('coin');burst(it.x+8,it.y+8,14,'#ffe27a',1.8,22)}
  for(const c of cps)if(spawn.x!==c.x+8&&overl(hb,{x:c.x-4,y:c.y-8,w:24,h:24})){spawn={x:c.x+8,y:c.y+16};snap=new Set(got);eSnap=new Set(ekill);hp=3;cpFx={t:0,bx:p.x+p.w/2-p.face*5,by:p.y+7,tx:p.x+p.w/2,ty:p.y-20};burst(cpFx.bx,cpFx.by,22,'#ffe27a',1.9,28);tone(520,1040,.22,'sine',.16);burst(c.x+8,c.y+8,20,'#ffb36b',1.6,28)}
@@ -226,6 +233,7 @@ function drawTiles(cx,cy){
 }
 function dirtAt(x,y,i,j){ctx.fillStyle='#1f394d';ctx.fillRect(x,y,T,T);const h=hs(i,j);ctx.fillStyle='#285066';if(h<.5)ctx.fillRect(x+Math.floor(h*24),y+Math.floor(h*20)+2,3,2);ctx.fillStyle='#173044';if(h>.7)ctx.fillRect(x+Math.floor(h*10),y+8,4,2)}
 function drawPlat(s){TS(16,16,48,12,s.x,s.y);TS(16,60,48,4,s.x,s.y+12)}
+function spikeBox(s){return s.d==='L'?{x:s.x+6,y:s.y+3,w:10,h:10}:s.d==='R'?{x:s.x,y:s.y+3,w:10,h:10}:s.d==='D'?{x:s.x+3,y:s.y,w:10,h:8}:{x:s.x+3,y:s.y+8,w:10,h:8}}
 function spikeAt(x,y,d){
  const poly=(pts,c)=>{ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(pts[0],pts[1]);for(let q=2;q<pts.length;q+=2)ctx.lineTo(pts[q],pts[q+1]);ctx.fill()};
  for(let k=0;k<2;k++){const o=k*8;
@@ -255,9 +263,15 @@ function draw(){
  drawTiles(cx,cy);for(const f of frames){TS(80,16,48,48,f.x,f.y);for(let q=f.g?1:0;q<3;q++)dirtAt(f.x+T,f.y+q*T,f.x/T+1,f.y/T+q);if(f.g)for(let q=0;q<3;q++)TS(112,128,16,16,f.x+q*T,f.y)}
  for(const s of statics){if(s.k==='plat')drawPlat(s);else ctx.drawImage(IM[s.k],s.x,s.y)}
  for(const m of movers)drawPlat(m);
+ for(const c of crumbles){
+  if(c.s<2){const o=c.s===1?((tick>>1)%2?1:-1):0;for(let i=0;i<3;i++)ctx.drawImage(IM.Box,c.x+i*16+o,c.y)}
+  else{const a=.3+.25*Math.sin(tick*.2)+(c.t>240?.35:0);ctx.fillStyle='rgba(255,255,255,'+Math.min(.9,a)+')';
+   for(let x=0;x<48;x+=7){ctx.fillRect(c.x+x,c.y,4,1);ctx.fillRect(c.x+x,c.y+15,4,1)}for(let y=0;y<16;y+=5){ctx.fillRect(c.x,c.y+y,1,3);ctx.fillRect(c.x+47,c.y+y,1,3)}}}
  for(const s of spikes)spikeAt(s.x,s.y,s.d);
  for(const c of cps){const on=spawn.x===c.x+8;ctx.globalAlpha=on?1:.55;TS(145,48,16,17,c.x,c.y);ctx.globalAlpha=1;if(on){ctx.fillStyle='rgba(255,179,107,.25)';ctx.beginPath();ctx.arc(c.x+8,c.y+8,10+Math.sin(tick*.1)*2,0,6.28);ctx.fill()}}
- for(const it of items)if(!got.has(it.id))ctx.drawImage(IM[it.k],it.x,Math.round(it.y+Math.sin(tick*.06+it.x)*2));
+ for(const it of items)if(!got.has(it.id)){const yy=Math.round(it.y+Math.sin(tick*.06+it.x)*2);
+  if(it.w){const up=(tick>>3)%2,wl=up?['.....a','...aaa','.aaaa.','aaa...']:['aaa...','.aaaa.','...aaa','.....a'],wr=wl.map(s=>[...s].reverse().join(''));PIX(wl,{a:'#f4f8ff'},it.x-6,yy+3);PIX(wr,{a:'#f4f8ff'},it.x+16,yy+3)}
+  ctx.drawImage(IM[it.k],it.x,yy)}
  ctx.drawImage(IM.Chest,CHEST.x,CHEST.y);for(const o of orbs)drawOrb(o);
  for(const gt of GATES){const y0=gt.y+gt.h,g=ctx.createLinearGradient(0,y0,0,y0+64),gc=gt.on?'233,112,143':'255,226,122';g.addColorStop(0,'rgba('+gc+',.5)');g.addColorStop(1,'rgba('+gc+',0)');ctx.globalAlpha=.7+.3*Math.sin(tick*.08);ctx.fillStyle=g;ctx.fillRect(gt.x,y0,gt.w,64);ctx.globalAlpha=1;if(gt.on){ctx.fillStyle='rgba(233,112,143,'+(.55+.3*Math.sin(tick*.25))+')';ctx.fillRect(gt.x,y0,gt.w,3)}PIX(['..a..','.aaa.','aaaaa','..a..','..a..'],{a:gt.on?'#e9708f':'#ffe27a'},gt.x+2*gt.w/4*1+4-0,y0+22+Math.round(Math.sin(tick*.1)*2))}
  for(const q of trail){ctx.globalAlpha=q.l/24;ctx.save();ctx.translate(Math.round(q.x),Math.round(q.y+1));ctx.scale(q.f<0?-1:1,1);ctx.drawImage(IM.run2,-AN.run2[0],-AN.run2[1]);ctx.restore();ctx.globalAlpha=1}
@@ -306,11 +320,13 @@ function menuStep(){
   if(back||(ok&&csel===2)){tsub='main';subT=0;tone(500,380,.08,'square',.08)}
  }else if(ok||back){tsub='main';subT=0;tone(500,380,.08,'square',.08)}
 }
+let menuLast=null,menuLG=null;
 const MV=document.getElementById('mv');if(MV){MV.muted=true;MV.defaultMuted=true}
 function menuVideo(on){if(!MV)return;if(on){if(MV.paused&&!MV._try){MV._try=1;MV.play().catch(()=>{}).finally(()=>{MV._try=0})}}else if(!MV.paused)MV.pause()}
 function menuScene(){
  menuVideo(true);
- if(MV&&MV.readyState>=2&&MV.videoWidth)ctx.drawImage(MV,0,0,MV.videoWidth,MV.videoHeight,0,0,W,H);
+ if(MV&&MV.readyState>=2&&MV.videoWidth){if(!menuLast){menuLast=document.createElement('canvas');menuLast.width=W;menuLast.height=H;menuLG=menuLast.getContext('2d')}menuLG.drawImage(MV,0,0,MV.videoWidth,MV.videoHeight,0,0,W,H);ctx.drawImage(menuLast,0,0)}
+ else if(menuLast)ctx.drawImage(menuLast,0,0)
  else{ctx.drawImage(IM.menu,0,0);ctx.globalCompositeOperation='lighter';const gl=ctx.createRadialGradient(200,112,6,200,112,80);gl.addColorStop(0,'rgba(80,150,255,'+(.16+.07*Math.sin(tick*.05))+')');gl.addColorStop(1,'rgba(80,150,255,0)');ctx.fillStyle=gl;ctx.fillRect(100,30,200,170);ctx.globalCompositeOperation='source-over'}
  const g=ctx.createLinearGradient(0,0,190,0);g.addColorStop(0,'rgba(3,8,22,.62)');g.addColorStop(1,'rgba(3,8,22,0)');ctx.fillStyle=g;ctx.fillRect(0,0,190,H);
  for(let n=0;n<motes.length;n+=2){const m=motes[n],x=((m.x+Math.sin(tick*.01+m.ph)*14)%W+W)%W,y=((m.y-tick*(.1+.05*(m.ph%1)))%H+H)%H;ctx.globalAlpha=.3+.45*Math.sin(tick*.06+m.ph*3);ctx.fillStyle=m.ph>3?'#ffe27a':'#9fe8ff';ctx.fillRect(Math.round(x),Math.round(y),1,1)}ctx.globalAlpha=1;
@@ -371,15 +387,14 @@ function boot(){
   else{tsub='main';subT=0}});
  document.getElementById('w').addEventListener('pointermove',e=>{if(mode!=='title'||menuConf||tsub!=='main')return;const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;for(let i=0;i<MENU.items.length;i++){const b=menuBtn(i);if(x>=b.x&&x<b.x+b.w&&y>=b.y&&y<b.y+b.h&&tsel!==i){tsel=i;selT=0;tone(700,900,.05,'square',.07)}}});
  if(document.fonts)document.fonts.load('700 9px "Pixelify Sans"');
- const BB={};const c=document.createElement('canvas');c.width=c.height=32;const x=c.getContext('2d');
- for(const k in IM){if(!/^(east|west|north|south|idle|run|cl\d)/.test(k))continue;x.clearRect(0,0,32,32);x.drawImage(IM[k],0,0);const d=x.getImageData(0,0,32,32).data;let x0=32,x1=0,y1=0;
-  for(let j=0;j<32;j++)for(let i=0;i<32;i++)if(d[(j*32+i)*4+3]>20){x0=Math.min(x0,i);x1=Math.max(x1,i);y1=Math.max(y1,j)}
-  BB[k]=[(x0+x1+1)/2,y1+1];if(k==='idle0')p.w=Math.max(10,Math.round((x1-x0+1)*.45))}
+ const BB={};const c=document.createElement('canvas');c.width=c.height=48;const x=c.getContext('2d');
+ for(const k in IM){if(!/^(east|west|north|south|idle|run|cl\d)/.test(k))continue;x.clearRect(0,0,48,48);x.drawImage(IM[k],0,0);const d=x.getImageData(0,0,48,48).data;let x0=48,x1=0,y1=0;
+  for(let j=0;j<48;j++)for(let i=0;i<48;i++)if(d[(j*48+i)*4+3]>20){x0=Math.min(x0,i);x1=Math.max(x1,i);y1=Math.max(y1,j)}
+  BB[k]=[(x0+x1+1)/2,y1+1,x1+1];if(k==='idle0')p.w=Math.max(10,Math.round((x1-x0+1)*.45))}
  p.h=16;
- const G={};for(const k in BB){const g=/^idle/.test(k)?'i':/^run/.test(k)?'r':'d';(G[g]=G[g]||[]).push(k)}
- for(const k in BB)if(/^cl\d/.test(k))BB[k][2]=1;
- for(const g in G){const ks=G[g],mxv=ks.reduce((a,k)=>a+BB[k][0],0)/ks.length,myv=Math.max(...ks.map(k=>BB[k][1]));ks.forEach(k=>AN[k]=[Math.round(mxv*2)/2,myv])}
- {const cls=Object.keys(BB).filter(k=>/^cl\d/.test(k)),cb=Math.max(...cls.map(k=>BB[k][1]));cls.forEach(k=>AN[k]=[15,cb])}
+ const G={};for(const k in BB){const g=/^idle/.test(k)?'i':/^run/.test(k)?'r':/^cl\d/.test(k)?'c':'d';(G[g]=G[g]||[]).push(k)}
+ for(const g in G){if(g==='c')continue;const ks=G[g],mxv=ks.reduce((a,k)=>a+BB[k][0],0)/ks.length,myv=Math.max(...ks.map(k=>BB[k][1]));ks.forEach(k=>AN[k]=[Math.round(mxv*2)/2,myv])}
+ {const cls=Object.keys(BB).filter(k=>/^cl\d/.test(k)),cb=Math.max(...cls.map(k=>BB[k][1])),fx=cls.reduce((a,k)=>a+BB[k][2],0)/cls.length;cls.forEach(k=>AN[k]=[Math.round(fx-6),cb])}   // frente (mãos) rente à parede
  respawn();let last=performance.now(),acc=0;
  camStep(true);(function loop(now){let dt=Math.min(100,now-last);last=now;if(Math.abs(dt-16.667)<2)dt=16.667;acc+=dt;while(acc>=16.66){step();acc-=16.667}if(acc<0)acc=0;draw();requestAnimationFrame(loop)})(last);
 }

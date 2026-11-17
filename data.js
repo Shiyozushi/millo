@@ -5,8 +5,8 @@
 
 // Resolução interna (pixel art) e tamanho do tile
 const W=400,H=240,T=16;
-// Tamanho do mapa em tiles (LW x LH): sala 1 embaixo (15 linhas) + sala 2 em cima (30 linhas)
-const LW=25,LH=45;
+// Tamanho do mapa em tiles (LW x LH): sala 1 embaixo (15 linhas), sala 2 no meio (30) e sala 3 em cima (15)
+const LW=25,LH=60;
 // Física do personagem: força do pulo, gravidade, velocidade de corrida
 const J=4.8,G=.3,RUN=1.7;
 
@@ -29,7 +29,7 @@ const CONTROLS=[
 
 // ---- Sala 1 (embaixo). Coordenadas em tiles, relativas à sala; 'dy' é a linha onde a sala começa no mapa ----
 const LEVEL={
-  dy:30, coinId:'c',
+  dy:45, coinId:'c',
   spawn:[1.8,11],                       // [x do centro, y do chão]
 
   // Blocos de terreno sólido: [x, y, largura, altura]
@@ -93,7 +93,7 @@ const LEVEL={
 // wallSpikes: [x, y, quantidade, direção]  direção: L (apontam p/ esquerda), R (apontam p/ direita)
 // movers: [x1, y1, x2, y2, velocidade]  plataformas móveis
 const LEVEL2={
-  dy:0, coinId:'d',
+  dy:15, coinId:'d',
   fills:[
     [0,0,11,5],                        // teto, com espinhos pendurados
     [0,8,5,22],                        // paredão da esquerda
@@ -119,4 +119,34 @@ const LEVEL2={
   }
 };
 
-const LEVELS=[LEVEL,LEVEL2];
+// ---- Sala 3 (no topo): plataformas temporárias (caixas que somem 0,5 s depois de pisadas e voltam em 5 s) ----
+// crumbles: [x, y]  plataformas de 3 tiles que se desfazem
+// coins: [x, y, comAsas]  a única moeda da sala fica no coração alado
+const LEVEL3={
+  dy:0, coinId:'e',
+  fills:[
+    [0,0,1,15],                        // parede esquerda
+    [1,0,13,1],[18,0,7,1],             // teto (aberto entre as colunas 14 e 17: é a saída)
+    [24,1,1,12],                       // parede direita (as 2 últimas linhas ficam abertas: entrada vinda da sala 2)
+    [1,14,16,1],                       // chão da caverna
+    [11,4,6,1],                        // viga da estrutura central
+    [15,5,2,7],                        // paredão direito da estrutura (com espinhos na face)
+    [11,5,1,9],                        // pilar esquerdo (dá para subir pela face dele)
+    [13,1,1,1],[18,1,1,3]              // paredes do poço de saída
+  ],
+  spikes:[[3,13,4,'U']],
+  wallSpikes:[[17,9,3,'R']],
+  crumbles:[[20,14],[17,12],[20,10],[17,8]],
+  frames:[], holes:[],
+  decos:[["bush",12.5,4],["bush",4,14],["flowers",8,14],["flowers",14,4]],
+  coins:[[9,5,true]],
+  checkpoints:[[14,3]],
+  orbs:[], movers:[], enemies:[],
+  gate:{x:13,w:5},                     // a saída só abre com a moeda desta sala
+  backdrop:{
+    zones:[[1,1,10,13],[17,5,23,13]],
+    props:[["vine",16,16],["vine",64,16],["vine",112,16],["tree",40,160],["tree",96,166],["mush",118,164],["tree",330,150]]
+  }
+};
+
+const LEVELS=[LEVEL,LEVEL2,LEVEL3];
