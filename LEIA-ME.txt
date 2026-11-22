@@ -1,0 +1,8 @@
+MILLO — versão compatível com abertura direta
+
+Abra index.html com dois cliques (file://) ou hospede a pasta no GitHub Pages.
+Os sprites ficam em assets/sprites e também são incorporados no manifesto apenas para o modo file://, evitando restrições de segurança do canvas.
+Os áudios usam HTMLAudioElement sem fetch.
+Os arquivos JS permanecem modularizados.
+
+Observação: ranking/serviços online podem exigir internet e permissões específicas do navegador.
